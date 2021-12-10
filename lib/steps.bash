@@ -83,12 +83,14 @@ function load_env_file() {
     return
   fi
 
-  local vars_to_export ; vars_to_export="$(mktemp)"
+  if grep -q '^export \w' "${env_file}"; then
+    # contains export statements
+    source "${env_file}"
+  else
+    # FIXME this doesn't handle a lot of cases right now, including spaces and multi-line values
+    local vars; vars="$(grep -v '^#' "${env_file}")"
 
-  awk '$0 ~ /^([a-zA-Z]).*=/ {print "export " $0 " ; "}' "${env_file}" | tee "$vars_to_export"
-
-  #shellcheck disable=SC1090
-  source "$vars_to_export"
-  export
-
+    #shellcheck disable=SC2046
+    export $(xargs <<< "${vars}")
+  fi
 }
